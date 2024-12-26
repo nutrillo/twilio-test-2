@@ -58,7 +58,7 @@ app.post('/whatsapp', async (req, res) => {
       try {
         fs.writeFileSync(tasksFile, JSON.stringify(tasks, null, 2)); // Guardar en el archivo
         console.log('Tarea guardada correctamente:', tasks); // Log de las tareas guardadas
-        gptAnswer = `Tarea creada: "${task}".`;
+        gptAnswer = `Tarea creada: hoola "${task}".`;
       } catch (err) {
         console.error('Error escribiendo en tasks.json:', err);
         gptAnswer = 'Hubo un problema al guardar tu tarea. Inténtalo más tarde.';
