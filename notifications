@@ -1,0 +1,6 @@
+// Notificación proactiva
+const result = await twilioClient.messages.create({
+  from: 'whatsapp:+14155238886', // tu número de Twilio
+  to: 'whatsapp:+34671370270',   // número del usuario
+  body: '¡Hola! Este es un recordatorio de tu cita mañana a las 10 am.'
+});
