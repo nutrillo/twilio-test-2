@@ -1,42 +1,32 @@
-const fs = require('fs');
+if (incomingMsg.startsWith('crear tarea')) {
+  const task = incomingMsg.replace('crear tarea', '').trim(); // Quitar "crear tarea"
+  let tasks = [];
 
-app.post('/whatsapp', async (req, res) => {
   try {
-    const incomingMsg = req.body.Body.toLowerCase(); // Texto del mensaje
-    const from = req.body.From;                     // Número de teléfono del remitente
+    // Leer el archivo tasks.json
+    const data = fs.readFileSync('./data/tasks.json', 'utf8');
+    tasks = JSON.parse(data); // Convertir el contenido en JSON
 
-    let gptAnswer = '';
-
-    if (incomingMsg.startsWith('crear tarea')) {
-      const task = incomingMsg.replace('crear tarea', '').trim();
-      const tasks = JSON.parse(fs.readFileSync('tasks.json', 'utf8'));
-      tasks.push({ task, timestamp: new Date().toISOString() });
-      fs.writeFileSync('tasks.json', JSON.stringify(tasks, null, 2));
-      gptAnswer = `Tarea creada: "${task}".`;
-    } else if (incomingMsg === 'ver tareas') {
-      const tasks = JSON.parse(fs.readFileSync('tasks.json', 'utf8'));
-      gptAnswer = tasks.length
-        ? `Tus tareas:\n${tasks.map((t, i) => `${i + 1}. ${t.task}`).join('\n')}`
-        : 'No tienes tareas pendientes.';
-    } else {
-      // Llamar a OpenAI solo si no es un comando específico
-      const response = await openai.createChatCompletion({
-        model: "gpt-3.5-turbo",
-        messages: [
-          { role: 'system', content: 'Eres un asistente virtual en WhatsApp.' },
-          { role: 'user', content: incomingMsg }
-        ]
-      });
-      gptAnswer = response.data.choices[0].message.content;
+    // Validar que tasks es un array
+    if (!Array.isArray(tasks)) {
+      console.error('El archivo tasks.json no contiene un array válido.');
+      tasks = [];
     }
-
-    // Responder vía Twilio
-    const twilioResponse = new twilio.twiml.MessagingResponse();
-    twilioResponse.message(gptAnswer);
-    res.set('Content-Type', 'text/xml');
-    res.send(twilioResponse.toString());
-  } catch (error) {
-    console.error('Error detectado:', error);
-    res.status(500).send('Error interno');
+  } catch (err) {
+    console.error('Error leyendo tasks.json:', err);
+    tasks = []; // Si falla, inicializar como array vacío
   }
-});
+
+  // Agregar nueva tarea
+  tasks.push({ task, timestamp: new Date().toISOString() });
+
+  try {
+    // Guardar en el archivo tasks.json
+    fs.writeFileSync('./data/tasks.json', JSON.stringify(tasks, null, 2));
+    gptAnswer = `Tarea creada: "${task}".`;
+  } catch (err) {
+    console.error('Error escribiendo en tasks.json:', err);
+    gptAnswer = 'Hubo un problema al guardar tu tarea. Inténtalo más tarde.';
+  }
+}
+
