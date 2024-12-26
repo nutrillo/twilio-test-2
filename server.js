@@ -1,4 +1,3 @@
-// server.js
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -10,7 +9,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 // Configurar OpenAI
 const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY, // 
+  apiKey: process.env.OPENAI_API_KEY,
 });
 const openai = new OpenAIApi(configuration);
 
@@ -47,6 +46,12 @@ app.post('/whatsapp', async (req, res) => {
   }
 });
 
+// Endpoint básico para probar que el servidor responde
+app.get('/', (req, res) => {
+  res.send('Servidor funcionando correctamente');
+});
+
+// Iniciar servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);
