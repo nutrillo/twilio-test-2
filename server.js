@@ -18,6 +18,13 @@ const openai = new OpenAIApi(configuration);
 // Configurar Twilio
 const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
+// Crear el archivo tasks.json si no existe
+const tasksFile = './tasks.json';
+if (!fs.existsSync(tasksFile)) {
+  console.log('El archivo tasks.json no existe. Creando un nuevo archivo...');
+  fs.writeFileSync(tasksFile, '[]');
+}
+
 // Endpoint que Twilio llamará
 app.post('/whatsapp', async (req, res) => {
   try {
@@ -32,14 +39,46 @@ app.post('/whatsapp', async (req, res) => {
     // Comando: Crear tarea
     if (incomingMsg.startsWith('crear tarea')) {
       const task = incomingMsg.replace('crear tarea', '').trim(); // Quitar "crear tarea"
-      const tasks = JSON.parse(fs.readFileSync('tasks.json', 'utf8')); // Leer el archivo de tareas
+      let tasks = [];
+
+      try {
+        const data = fs.readFileSync(tasksFile, 'utf8'); // Leer el archivo de tareas
+        tasks = JSON.parse(data); // Intentar parsear el contenido
+        if (!Array.isArray(tasks)) {
+          console.error('El archivo tasks.json no contiene un array válido.');
+          tasks = [];
+        }
+      } catch (err) {
+        console.error('Error leyendo tasks.json:', err);
+        tasks = []; // Si falla, inicializar como array vacío
+      }
+
       tasks.push({ task, timestamp: new Date().toISOString() }); // Agregar nueva tarea
-      fs.writeFileSync('tasks.json', JSON.stringify(tasks, null, 2)); // Guardar en el archivo
-      gptAnswer = `Tarea creada: "${task}".`;
+
+      try {
+        fs.writeFileSync(tasksFile, JSON.stringify(tasks, null, 2)); // Guardar en el archivo
+        console.log('Tarea guardada correctamente:', tasks); // Log de las tareas guardadas
+        gptAnswer = `Tarea creada: "${task}".`;
+      } catch (err) {
+        console.error('Error escribiendo en tasks.json:', err);
+        gptAnswer = 'Hubo un problema al guardar tu tarea. Inténtalo más tarde.';
+      }
 
     // Comando: Ver tareas
     } else if (incomingMsg === 'ver tareas') {
-      const tasks = JSON.parse(fs.readFileSync('tasks.json', 'utf8')); // Leer las tareas
+      let tasks = [];
+      try {
+        const data = fs.readFileSync(tasksFile, 'utf8'); // Leer el archivo de tareas
+        tasks = JSON.parse(data); // Intentar parsear el contenido
+        if (!Array.isArray(tasks)) {
+          console.error('El archivo tasks.json no contiene un array válido.');
+          tasks = [];
+        }
+      } catch (err) {
+        console.error('Error leyendo tasks.json:', err);
+        tasks = [];
+      }
+
       gptAnswer = tasks.length
         ? `Tus tareas:\n${tasks.map((t, i) => `${i + 1}. ${t.task}`).join('\n')}`
         : 'No tienes tareas pendientes.';
